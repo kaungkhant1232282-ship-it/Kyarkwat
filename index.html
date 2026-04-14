@@ -2,106 +2,103 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Virtual Pet</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pet Clicker TMA</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f3f5; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .pet-container { background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 85%; max-width: 350px; }
-        #pet-emoji { font-size: 80px; margin: 20px 0; transition: transform 0.3s; }
-        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; }
-        .stat-box { font-size: 14px; font-weight: bold; }
-        .bar-container { width: 60px; height: 8px; background: #eee; border-radius: 4px; margin-top: 5px; }
-        .bar { height: 100%; border-radius: 4px; transition: width 0.5s; }
-        .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        button { padding: 15px 5px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:active { transform: scale(0.95); }
-        .feed-btn { background: #ff7675; color: white; }
-        .play-btn { background: #74b9ff; color: white; }
-        .sleep-btn { background: #a29bfe; color: white; }
+        body { font-family: 'Arial', sans-serif; background: linear-gradient(180deg, #6c5ce7, #a29bfe); height: 100vh; margin: 0; display: flex; flex-direction: column; align-items: center; color: white; overflow: hidden; }
+        .header { margin-top: 20px; text-align: center; }
+        .coin-display { font-size: 32px; font-weight: bold; margin: 10px 0; display: flex; align-items: center; gap: 10px; }
+        
+        .pet-stage { font-size: 18px; background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 20px; }
+        
+        #pet-area { flex-grow: 1; display: flex; align-items: center; justify-content: center; width: 100%; }
+        #pet-avatar { font-size: 120px; cursor: pointer; transition: transform 0.1s; user-select: none; }
+        #pet-avatar:active { transform: scale(0.8); }
+
+        .footer { width: 100%; background: white; border-radius: 30px 30px 0 0; padding: 20px; box-sizing: border-box; color: #333; text-align: center; }
+        .progress-container { width: 100%; height: 15px; background: #eee; border-radius: 10px; margin: 15px 0; overflow: hidden; }
+        #progress-bar { width: 0%; height: 100%; background: #00b894; transition: width 0.3s; }
+        
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 15px; border: none; border-radius: 15px; font-weight: bold; cursor: pointer; color: white; }
+        .upgrade-btn { background: #fdcb6e; color: #333; }
+        .share-btn { background: #0984e3; }
     </style>
 </head>
 <body>
 
-    <div class="pet-container">
-        <h2>မွေးမြူရေးဂိမ်း 🐾</h2>
-        
-        <div id="pet-emoji">🐱</div>
-        
-        <div class="stats">
-            <div class="stat-box">ဗိုက်ဆာ
-                <div class="bar-container"><div id="hunger-bar" class="bar" style="background: #ff7675; width: 100%;"></div></div>
-            </div>
-            <div class="stat-box">ပျော်ရွှင်
-                <div class="bar-container"><div id="happy-bar" class="bar" style="background: #74b9ff; width: 100%;"></div></div>
-            </div>
-            <div class="stat-box">အိပ်ချင်
-                <div class="bar-container"><div id="energy-bar" class="bar" style="background: #a29bfe; width: 100%;"></div></div>
-            </div>
-        </div>
+    <div class="header">
+        <div class="coin-display">💰 <span id="coins">0</span></div>
+        <div class="pet-stage" id="stage">Stage: ဥလေး (Egg)</div>
+    </div>
 
-        <div class="btn-grid">
-            <button class="feed-btn" onclick="feed()">အစာကျွေး</button>
-            <button class="play-btn" onclick="play()">ကစားမယ်</button>
-            <button class="sleep-btn" onclick="sleep()">အိပ်မယ်</button>
+    <div id="pet-area">
+        <div id="pet-avatar" onclick="handleTap()">🥚</div>
+    </div>
+
+    <div class="footer">
+        <div style="display: flex; justify-content: space-between; font-size: 14px;">
+            <span>Level Up Progress</span>
+            <span id="percent">0%</span>
         </div>
-        <p id="msg" style="margin-top: 15px; color: #636e72;">ကြောင်လေးကို ဂရုစိုက်ပါ!</p>
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <div class="btn-group">
+            <button class="btn upgrade-btn" onclick="upgrade()">Upgrade (Cost: 50)</button>
+            <button class="btn share-btn" onclick="share()">Invite Friends</button>
+        </div>
     </div>
 
     <script>
-        let hunger = 100;
-        let happy = 100;
-        let energy = 100;
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let coins = 0;
+        let exp = 0;
+        let level = 1;
+        const stages = ["🥚", "🐣", "🐥", "🐔", "🦖", "🐉"];
+
+        function handleTap() {
+            coins += 1;
+            exp += 2;
+            if (exp >= 100) exp = 100;
+            updateUI();
+            
+            // Haptic Feedback (ဖုန်းတုန်ခါမှု) - Telegram မှာပဲ ရတယ်
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function upgrade() {
+            if (coins >= 50 && level < stages.length) {
+                coins -= 50;
+                level++;
+                exp = 0;
+                updateUI();
+                alert("Level Up! ပိုကြီးလာပြီ!");
+            } else if (level >= stages.length) {
+                alert("အမြင့်ဆုံးအဆင့် ရောက်သွားပြီ!");
+            } else {
+                alert("ပိုက်ဆံမလောက်သေးဘူး!");
+            }
+        }
+
+        function share() {
+            // Telegram Share Link
+            const url = "https://t.me/share/url?url=https://t.me/မင်းရဲ့botနာမည်&text=ငါ့ရဲ့နဂါးလေးကိုလာကြည့်လှည့်!";
+            tg.openTelegramLink(url);
+        }
 
         function updateUI() {
-            document.getElementById('hunger-bar').style.width = hunger + '%';
-            document.getElementById('happy-bar').style.width = happy + '%';
-            document.getElementById('energy-bar').style.width = energy + '%';
-
-            const emoji = document.getElementById('pet-emoji');
-            if (hunger < 30 || energy < 30) {
-                emoji.innerText = '😿';
-                document.getElementById('msg').innerText = "ဗိုက်ဆာနေပြီ ထင်တယ်...";
-            } else if (hunger > 80 && happy > 80) {
-                emoji.innerText = '😸';
-                document.getElementById('msg').innerText = "ကြောင်လေးက အရမ်းပျော်နေတယ်!";
-            } else {
-                emoji.innerText = '🐱';
-            }
+            document.getElementById('coins').innerText = coins;
+            document.getElementById('progress-bar').style.width = exp + '%';
+            document.getElementById('percent').innerText = exp + '%';
+            document.getElementById('pet-avatar').innerText = stages[level - 1];
+            
+            const stageNames = ["ဥ", "ပေါက်စ", "ကြက်ပေါက်", "ကြက်မကြီး", "ဒိုင်နိုဆော", "နဂါး"];
+            document.getElementById('stage').innerText = "Stage: " + stageNames[level - 1];
         }
-
-        function feed() {
-            hunger = Math.min(hunger + 20, 100);
-            document.getElementById('pet-emoji').style.transform = 'scale(1.2)';
-            setTimeout(() => document.getElementById('pet-emoji').style.transform = 'scale(1)', 300);
-            updateUI();
-        }
-
-        function play() {
-            if (energy > 20) {
-                happy = Math.min(happy + 20, 100);
-                energy -= 15;
-                updateUI();
-            } else {
-                document.getElementById('msg').innerText = "ကြောင်လေး ပင်ပန်းနေတယ် အိပ်ခိုင်းလိုက်ပါ";
-            }
-        }
-
-        function sleep() {
-            energy = 100;
-            hunger -= 10;
-            document.getElementById('msg').innerText = "ကြောင်လေး အိပ်ပျော်သွားပြီ... Zzz";
-            updateUI();
-        }
-
-        // ၁၀ စက္ကန့်တိုင်း ဗိုက်နည်းနည်းစီ ဆာလာမယ်
-        setInterval(() => {
-            hunger = Math.max(hunger - 5, 0);
-            happy = Math.max(happy - 3, 0);
-            energy = Math.max(energy - 2, 0);
-            updateUI();
-        }, 10000);
-
-        updateUI();
     </script>
 </body>
 </html>
